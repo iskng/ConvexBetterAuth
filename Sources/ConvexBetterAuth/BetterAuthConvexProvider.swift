@@ -81,3 +81,8 @@ public final class BetterAuthProvider: ConvexAuthProvider {
     }
 }
 
+#if canImport(ConvexMobile)
+import ConvexMobile
+// Conform to the real Convex AuthProvider when available.
+extension BetterAuthProvider: AuthProvider {}
+#endif

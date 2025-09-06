@@ -11,8 +11,8 @@ Add both packages to your app:
 ```swift
 // In your app's Package.swift
 dependencies: [
-    .package(url: "https://github.com/your-org/BetterAuthSwift.git", from: "1.0.0"),
-    .package(url: "https://github.com/your-org/ConvexBetterAuth.git", from: "0.1.0")
+    .package(url: "https://github.com/iskng/BetterAuthSwift.git", from: "1.0.0"),
+    .package(url: "https://github.com/iskng/ConvexBetterAuth.git", from: "0.1.0")
 ]
 ```
 
@@ -41,4 +41,3 @@ When integrating with Convex, conform this provider to the actual `AuthProvider`
 ## License
 
 MIT
-
