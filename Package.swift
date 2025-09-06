@@ -11,7 +11,7 @@ let package = Package(
         .library(name: "ConvexBetterAuth", targets: ["ConvexBetterAuth"]) 
     ],
     dependencies: [
-        .package(path: "..")
+        .package(url: "https://github.com/iskng/BetterAuthSwift.git", from: "1.0.0")
     ],
     targets: [
         .target(name: "ConvexBetterAuth", dependencies: [
