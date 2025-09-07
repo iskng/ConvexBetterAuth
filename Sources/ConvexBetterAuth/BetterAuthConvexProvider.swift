@@ -72,7 +72,7 @@ public final class BetterAuthProvider: ConvexAuthProvider {
         let resp = try await client.signInWithApple()
         guard let auth = resp.data else { throw BetterAuthError.missingToken }
         // Exchange for Convex JWT and publish that as the credential for Convex
-        let convexJwt = try await client.getConvexToken()
+        let convexJwt = try await fetchConvexJwt()
         return BetterAuthCredentials(sessionToken: convexJwt, user: auth.user, expiresAt: auth.session.expiresAt)
         #else
         throw BetterAuthError.invalidURL("AuthenticationServices not available on this platform")
@@ -85,11 +85,27 @@ public final class BetterAuthProvider: ConvexAuthProvider {
         guard client.currentToken != nil else { throw BetterAuthError.missingToken }
         // Validate session and hydrate user if available
         let resp = try await client.getSession()
-        let convexJwt = try await client.getConvexToken()
+        let convexJwt = try await fetchConvexJwt()
         if let auth = resp.data {
             return BetterAuthCredentials(sessionToken: convexJwt, user: auth.user, expiresAt: auth.session.expiresAt)
         }
         return BetterAuthCredentials(sessionToken: convexJwt, user: nil, expiresAt: nil)
+    }
+
+    // MARK: - Private
+
+    private func fetchConvexJwt() async throws -> String {
+        guard let sessionToken = client.currentToken else { throw BetterAuthError.missingToken }
+        var request = URLRequest(url: client.baseURL.appendingPathComponent("convex/token"))
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            throw BetterAuthError.invalidResponse((response as? HTTPURLResponse)?.statusCode ?? 0, data)
+        }
+        struct TokenResp: Decodable { let token: String }
+        return try JSONDecoder().decode(TokenResp.self, from: data).token
     }
 
     /// Returns the token string expected by Convex's auth integration.
