@@ -39,8 +39,25 @@ public final class BetterAuthProvider: ConvexAuthProvider {
     ///   - notificationCenter: Custom NotificationCenter for token change notifications.
     public init(baseURL: String, enableCachedLogins: Bool = true, notificationCenter: NotificationCenter = .default) throws {
         self.enableCachedLogins = enableCachedLogins
-        // Uses OpenAPI social endpoints by default in BetterAuthSwift
-        self.client = try BetterAuthClient(baseURL: baseURL, notificationCenter: notificationCenter)
+        let authBase = try BetterAuthProvider.normalizeAuthBaseURL(baseURL)
+        self.client = try BetterAuthClient(baseURL: authBase.absoluteString, notificationCenter: notificationCenter)
+    }
+
+    /// Convenience: Initialize from a Convex deployment root; appends `/api/auth` automatically.
+    public convenience init(deploymentURL: String, enableCachedLogins: Bool = true, notificationCenter: NotificationCenter = .default) throws {
+        let authBase = try BetterAuthProvider.normalizeAuthBaseURL(deploymentURL)
+        try self.init(baseURL: authBase.absoluteString, enableCachedLogins: enableCachedLogins, notificationCenter: notificationCenter)
+    }
+
+    private static func normalizeAuthBaseURL(_ input: String) throws -> URL {
+        guard var url = URL(string: input) else { throw BetterAuthError.invalidURL(input) }
+        let path = url.path.lowercased()
+        if path.hasSuffix("/api/auth") || path.hasSuffix("/api/auth/") {
+            return url
+        }
+        url.appendPathComponent("api")
+        url.appendPathComponent("auth")
+        return url
     }
 
     /// Create a provider using an existing BetterAuthClient.
