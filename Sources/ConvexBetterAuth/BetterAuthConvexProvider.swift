@@ -71,7 +71,9 @@ public final class BetterAuthProvider: ConvexAuthProvider {
         #if canImport(AuthenticationServices)
         let resp = try await client.signInWithApple()
         guard let auth = resp.data else { throw BetterAuthError.missingToken }
-        return BetterAuthCredentials(sessionToken: auth.session.token, user: auth.user, expiresAt: auth.session.expiresAt)
+        // Exchange for Convex JWT and publish that as the credential for Convex
+        let convexJwt = try await client.getConvexToken()
+        return BetterAuthCredentials(sessionToken: convexJwt, user: auth.user, expiresAt: auth.session.expiresAt)
         #else
         throw BetterAuthError.invalidURL("AuthenticationServices not available on this platform")
         #endif
@@ -80,12 +82,14 @@ public final class BetterAuthProvider: ConvexAuthProvider {
     /// Attempts to restore a session from stored tokens and validate with the backend.
     public func loginFromCache() async throws -> BetterAuthCredentials {
         guard enableCachedLogins else { fatalError("Can't call loginFromCache when not enabled") }
-        guard let token = client.currentToken else { throw BetterAuthError.missingToken }
+        guard client.currentToken != nil else { throw BetterAuthError.missingToken }
+        // Validate session and hydrate user if available
         let resp = try await client.getSession()
+        let convexJwt = try await client.getConvexToken()
         if let auth = resp.data {
-            return BetterAuthCredentials(sessionToken: auth.session.token, user: auth.user, expiresAt: auth.session.expiresAt)
+            return BetterAuthCredentials(sessionToken: convexJwt, user: auth.user, expiresAt: auth.session.expiresAt)
         }
-        return BetterAuthCredentials(sessionToken: token, user: nil, expiresAt: nil)
+        return BetterAuthCredentials(sessionToken: convexJwt, user: nil, expiresAt: nil)
     }
 
     /// Returns the token string expected by Convex's auth integration.
