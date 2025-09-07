@@ -79,11 +79,39 @@ public final class BetterAuthProvider: ConvexAuthProvider {
         #endif
     }
 
+    /// Overload: Optionally hydrate Better Auth user by calling get-session after sign-in.
+    public func login(hydrateUser: Bool) async throws -> BetterAuthCredentials {
+        if !hydrateUser { return try await login() }
+        #if canImport(AuthenticationServices)
+        _ = try await client.signInWithApple()
+        // Validate session and hydrate user
+        let sessionResp = try await client.getSession()
+        let convexJwt = try await fetchConvexJwt()
+        if let auth = sessionResp.data {
+            return BetterAuthCredentials(sessionToken: convexJwt, user: auth.user, expiresAt: auth.session.expiresAt)
+        }
+        // Fallback if server returns no body
+        return BetterAuthCredentials(sessionToken: convexJwt, user: nil, expiresAt: nil)
+        #else
+        throw BetterAuthError.invalidURL("AuthenticationServices not available on this platform")
+        #endif
+    }
+
     /// Attempts to restore a session from stored tokens and validate with the backend.
     public func loginFromCache() async throws -> BetterAuthCredentials {
         guard enableCachedLogins else { fatalError("Can't call loginFromCache when not enabled") }
         guard client.currentToken != nil else { throw BetterAuthError.missingToken }
         // Validate session and hydrate user if available
+        let resp = try await client.getSession()
+        let convexJwt = try await fetchConvexJwt()
+        if let auth = resp.data {
+            return BetterAuthCredentials(sessionToken: convexJwt, user: auth.user, expiresAt: auth.session.expiresAt)
+        }
+        return BetterAuthCredentials(sessionToken: convexJwt, user: nil, expiresAt: nil)
+    }
+
+    /// Fetches the current Better Auth session and returns credentials with hydrated user.
+    public func getSession() async throws -> BetterAuthCredentials {
         let resp = try await client.getSession()
         let convexJwt = try await fetchConvexJwt()
         if let auth = resp.data {
