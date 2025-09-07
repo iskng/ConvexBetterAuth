@@ -39,7 +39,8 @@ public final class BetterAuthProvider: ConvexAuthProvider {
     ///   - notificationCenter: Custom NotificationCenter for token change notifications.
     public init(baseURL: String, enableCachedLogins: Bool = true, notificationCenter: NotificationCenter = .default) throws {
         self.enableCachedLogins = enableCachedLogins
-        self.client = try BetterAuthClient(baseURL: baseURL, notificationCenter: notificationCenter)
+        // Use social sign-in by default to match OpenAPI /sign-in/social
+        self.client = try BetterAuthClient(baseURL: baseURL, notificationCenter: notificationCenter, signInMode: .providerInBodyIdTokenEnvelope)
     }
 
     /// Create a provider using an existing BetterAuthClient.
