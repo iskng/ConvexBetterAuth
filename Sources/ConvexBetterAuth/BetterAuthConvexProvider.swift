@@ -15,6 +15,11 @@ public protocol ConvexAuthProvider {
     func logout() async throws
 }
 
+/// Errors specific to this provider wrapper.
+public enum ProviderError: Error {
+    case cachedLoginDisabled
+}
+
 /// Lightweight credentials object returned by the BetterAuth provider.
 public struct BetterAuthCredentials: Codable {
     public let sessionToken: String
@@ -99,7 +104,7 @@ public final class BetterAuthProvider: ConvexAuthProvider {
 
     /// Attempts to restore a session from stored tokens and validate with the backend.
     public func loginFromCache() async throws -> BetterAuthCredentials {
-        guard enableCachedLogins else { fatalError("Can't call loginFromCache when not enabled") }
+        guard enableCachedLogins else { throw ProviderError.cachedLoginDisabled }
         guard client.currentToken != nil else { throw BetterAuthError.missingToken }
         // Validate session and hydrate user if available
         let resp = try await client.getSession()
